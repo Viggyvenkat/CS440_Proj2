@@ -136,7 +136,7 @@ def next_move(bot, MAY_CONTAIN_LEAK):
             min_coords = (i,j)
     return min_coords
 
-def bot_1():
+def deterministic_search():
     bot = randValid()
     leak = leakRandValid()
     MAY_CONTAIN_LEAK = []
@@ -147,18 +147,33 @@ def bot_1():
         MAY_CONTAIN_LEAK.append((i,j))
     
     actions = 0
-    while bot != leak: 
-        if(detect(bot, leak)):
-            lst = create_detection_square(bot)
-            MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
-            actions += 1
-        else: 
-            MAY_CONTAIN_LEAK.remove((i,j))
-        next_location = next_move(bot, MAY_CONTAIN_LEAK)
-        actions += math.dist(next_location, bot)
-        bot = next_location
-    
+    if BOT == 1:
+        while bot != leak: 
+            if(detect(bot, leak)):
+                lst = create_detection_square(bot)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+                break
+            else: 
+                MAY_CONTAIN_LEAK.remove((i,j))
+            next_location = next_move(bot, MAY_CONTAIN_LEAK)
+            actions += math.dist(next_location, bot)
+            bot = next_location
+    elif BOT == 2: 
+        while bot != leak: 
+            detections = []
+            if(detect(bot, leak)):
+                lst = create_detection_square(bot)
+                detections.append(lst)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+                break
+            else: 
+                MAY_CONTAIN_LEAK.remove(i,j)
+                MAY_CONTAIN_LEAK = [(i,j) for (i,j) in MAY_CONTAIN_LEAK if i not in detections]
+            next_location = next_move(bot, MAY_CONTAIN_LEAK)
+            actions += math.dist(next_location, bot)
+            bot = next_location
+    return actions 
 
-
-
-
+def probabilistic_search():
