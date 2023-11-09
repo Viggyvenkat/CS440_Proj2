@@ -1,29 +1,32 @@
-import PySimpleGUI as sg
 import random
 import time
 import sys
 import heapq
 from collections import deque
-
-GRID_SIZE = 50 
-BOT = 1
-
-SHIP = [GRID_SIZE][GRID_SIZE]
+import pandas 
+import math 
 
 def rand(n):
     return random.randint(0,n-1)
 
+GRID_SIZE = 50 
 blocked_cells = []
 dead_ends = {}
+#SHIP = [GRID_SIZE][GRID_SIZE]
+BOT = 1
 
 first_cell_x = rand(GRID_SIZE)
 first_cell_y = rand(GRID_SIZE)
-corridor_dict = {(first_cell_x, first_cell_y): True}
+    
+blocked_cells = []
+dead_ends = {}
 
-def within_bounds(pair):
-    i = pair[0]
-    j = pair[1]
-    return i >= 0 and i < GRID_SIZE and j >= 0 and j < GRID_SIZE
+corridor_dict = {
+    (first_cell_x, first_cell_y): True
+}
+
+def rand(n):
+    return random.randint(0,n-1)
 
 def dead_end(pair):
     i = pair[0]
@@ -46,6 +49,20 @@ def is_blocked(pair):
     if (i,j-1) in corridor_dict: cnt += 1
     return cnt == 1
 
+def within_bounds(pair):
+    i = pair[0]
+    j = pair[1]
+    return i >= 0 and i < GRID_SIZE and j >= 0 and j < GRID_SIZE
+
+def open_closed_neighbor(to_be_added,pair):
+    list = [(-1,0),(1,0),(0,-1),(0,1)]
+    random.shuffle(list)
+    for pair_2 in list:
+        possible_pair = ((pair[0] + pair_2[0]), (pair[1]+pair_2[1]))
+        if within_bounds(possible_pair) and possible_pair not in corridor_dict:
+            to_be_added[possible_pair] = True
+            break
+
 def add_cells_initialization(pair):
     i = pair[0]
     j = pair[1]
@@ -58,24 +75,8 @@ def add_cells_initialization(pair):
     if within_bounds((i,j+1)) and is_blocked((i,j+1)): 
         blocked_cells.append((i, j+1))
 
+# initializes cells
 add_cells_initialization((first_cell_x, first_cell_y))
-
-# returns random pair that is in corridor
-def randValid():
-    while True:
-        loc = (rand(GRID_SIZE),rand(GRID_SIZE))
-        if loc in corridor_dict: return loc
-
-# opens closed neighbors in random order
-def open_closed_neighbor(pair):
-    list = [(-1,0),(1,0),(0,-1),(0,1)]
-    random.shuffle(list)
-    for pair_2 in list:
-        possible_pair = ((pair[0] + pair_2[0]), (pair[1]+pair_2[1]))
-        if within_bounds(possible_pair) and possible_pair not in corridor_dict:
-            to_be_added[possible_pair] = True
-            break
-
 
 while(len(blocked_cells) != 0):
     rand_index = rand(len(blocked_cells))
@@ -88,12 +89,72 @@ while(len(blocked_cells) != 0):
 to_be_added = {}
 for pair,_ in corridor_dict.items():
     if dead_end(pair) == True and rand(2) == 1:
-        open_closed_neighbor(pair)
+        open_closed_neighbor(corridor_dict, pair)
         
 for pair,_ in to_be_added.items():
     corridor_dict[pair] = True
 
-# initializes locations of robot and end location
-robot_location = randValid()
-robot_path = {} # all cells that robot plans on traversing through
-goal_location = randValid()
+def randValid():
+    while True:
+        loc = (rand(GRID_SIZE),rand(GRID_SIZE))
+        if loc in corridor_dict: return loc
+
+def leakRandValid(pair):
+    while True:
+        loc = (rand(GRID_SIZE),rand(GRID_SIZE))
+        if loc in corridor_dict: 
+            if loc[0] < 2 * pair[0] + 1 or loc[1] < 2 * pair[1] + 1:
+                return leakRandValid(pair)
+            else:
+                return loc
+
+print(corridor_dict)
+
+def detect(bot, leak):
+    if(leak[0] < 2 * bot[0] + 1 or leak[1] < 2 * bot[1] + 1):
+        return True 
+    return False
+
+def create_detection_square(bot):
+    lst = []
+
+
+def intersection(lst1, lst2):
+    lst3 = [value for value in lst1 if value in lst2]
+    return lst3
+
+def next_move(bot, MAY_CONTAIN_LEAK):
+    minimum_distance = math.dist(MAY_CONTAIN_LEAK[0], bot)
+    min_coords = MAY_CONTAIN_LEAK[0]
+    for (i,j) in MAY_CONTAIN_LEAK[1:]:
+        if (math.dist((i,j), bot) < minimum_distance):
+            minimum_distance = math.dist((i,j), bot)
+            min_coords = (i,j)
+    return min_coords
+
+def bot_1():
+    bot = randValid()
+    leak = leakRandValid()
+    MAY_CONTAIN_LEAK = []
+
+    for i,j in corridor_dict:
+        if (i,j) == bot:
+            continue
+        MAY_CONTAIN_LEAK.append((i,j))
+    
+    actions = 0
+    while bot != leak: 
+        if(detect(bot, leak)):
+            lst = create_detection_square(bot)
+            MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+            actions += 1
+        else: 
+            MAY_CONTAIN_LEAK.remove((i,j))
+        next_location = next_move(bot, MAY_CONTAIN_LEAK)
+        actions += math.dist(next_location, bot)
+        bot = next_location
+    
+
+
+
+
