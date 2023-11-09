@@ -117,6 +117,10 @@ def detect(bot, leak):
 
 def create_detection_square(bot):
     lst = []
+    for i in range(1, 2):
+        for j in range(1, 2):
+            lst.append((i * bot[0]), (j * bot[1]))
+    return lst         
 
 
 def intersection(lst1, lst2):
