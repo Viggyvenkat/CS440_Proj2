@@ -153,7 +153,6 @@ def deterministic_search():
                 lst = create_detection_square(bot)
                 MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
                 actions += 1
-                break
             else: 
                 MAY_CONTAIN_LEAK.remove((i,j))
             next_location = next_move(bot, MAY_CONTAIN_LEAK)
@@ -167,7 +166,6 @@ def deterministic_search():
                 detections.append(lst)
                 MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
                 actions += 1
-                break
             else: 
                 MAY_CONTAIN_LEAK.remove(i,j)
                 MAY_CONTAIN_LEAK = [(i,j) for (i,j) in MAY_CONTAIN_LEAK if i not in detections]
@@ -176,4 +174,67 @@ def deterministic_search():
             bot = next_location
     return actions 
 
+
+def bot_enters_cell_probability(probability_matrix, bot_location):
+    # P( leak in cell j | leak not found in bot_location )
+
+    return probability_matrix 
+
+def beep_probability_update():
+    #P( leak in cell j | heard beep in bot_location )
+
+def no_beep_probability_update():
+    #P( leak in cell j | heard no beep in bot_location )
+
+def get_location_of_max_probability(probability_matrix):
+    maximum_prob = 0
+    for key in probability_matrix:
+        if maximum_prob < probability_matrix[key]:
+            maximum_prob = probability_matrix[key]
+    return maximum_prob
+
+def plan_path_from_to(bot, next_location):
+    lst = []
+    for i in range(bot[0], next_location[0]):
+        for j in range(bot[1], next_location[1]):
+            lst.append((i,j))
+    return lst        
+        
 def probabilistic_search():
+    bot = randValid()
+    leak = leakRandValid()
+    probability_matrix = {}
+
+    for (i,j) in corridor_dict:
+        if (i,j) == bot:
+            continue
+        prob = {(i,j): 1/len(corridor_dict)}
+        probability_matrix.update(prob)
+    
+    actions = 0 
+    if BOT == 3: 
+        while bot != leak:
+            probability_matrix = bot_enters_cell_probability(probability_matrix, bot)
+            shortest_distance = math.dist(leak, bot)
+            beep = math.pow(math.e, )
+            actions+=1
+
+            if(beep > 0.5):
+                probability_matrix = beep_probability_update(probability_matrix, bot)
+            else: 
+                probability_matrix = no_beep_probability_update(probability_matrix, bot)
+            
+            next_location = get_location_of_max_probability(probability_matrix)
+            path = plan_path_from_to(bot, next_location)
+
+            for (i,j) in path:
+                bot = (i,j)
+                if bot == leak: 
+                    return actions
+                else: 
+                    probability_matrix = bot_enters_cell_probability(probability_matrix, bot)
+                actions+=1
+        return actions 
+    
+    elif BOT == 4: 
+
