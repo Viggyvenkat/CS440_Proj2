@@ -177,7 +177,7 @@ def deterministic_search():
 
 def bot_enters_cell_probability(probability_matrix, bot_location):
     # P( leak in cell j | leak not found in bot_location )
-
+    for 
     return probability_matrix 
 
 def beep_probability_update():
@@ -200,7 +200,7 @@ def plan_path_from_to(bot, next_location):
             lst.append((i,j))
     return lst        
         
-def probabilistic_search():
+def probabilistic_search(alpha: float):
     bot = randValid()
     leak = leakRandValid()
     probability_matrix = {}
@@ -216,10 +216,10 @@ def probabilistic_search():
         while bot != leak:
             probability_matrix = bot_enters_cell_probability(probability_matrix, bot)
             shortest_distance = math.dist(leak, bot)
-            beep = math.pow(math.e, )
+            beep = math.pow(math.e, alpha * (shortest_distance - 1))
             actions+=1
 
-            if(beep > 0.5):
+            if(beep >= random()):
                 probability_matrix = beep_probability_update(probability_matrix, bot)
             else: 
                 probability_matrix = no_beep_probability_update(probability_matrix, bot)
@@ -238,3 +238,7 @@ def probabilistic_search():
     
     elif BOT == 4: 
 
+def deterministic_multiple_leaks():
+
+
+def probabilistic_multiple_leaks():
