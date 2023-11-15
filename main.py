@@ -154,7 +154,7 @@ def deterministic_search():
                 MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
                 actions += 1
             else: 
-                MAY_CONTAIN_LEAK.remove((i,j))
+                MAY_CONTAIN_LEAK.remove(bot)
             next_location = next_move(bot, MAY_CONTAIN_LEAK)
             actions += math.dist(next_location, bot)
             bot = next_location
@@ -177,11 +177,20 @@ def deterministic_search():
 
 def bot_enters_cell_probability(probability_matrix, bot_location):
     # P( leak in cell j | leak not found in bot_location )
-    for 
-    return probability_matrix 
+    new_probability_matrix = probability_matrix
+    b = 0
+
+    new_probability_matrix[bot_location] = b
+    for key in new_probability_matrix:
+        a = new_probability_matrix[key]
+        update_prob = (b * (b * a)) / a
+        new_probability_matrix[key] = update_prob
+
+    return new_probability_matrix 
 
 def beep_probability_update():
     #P( leak in cell j | heard beep in bot_location )
+
 
 def no_beep_probability_update():
     #P( leak in cell j | heard no beep in bot_location )
@@ -219,7 +228,7 @@ def probabilistic_search(alpha: float):
             beep = math.pow(math.e, alpha * (shortest_distance - 1))
             actions+=1
 
-            if(beep >= random()):
+            if(beep > random()):
                 probability_matrix = beep_probability_update(probability_matrix, bot)
             else: 
                 probability_matrix = no_beep_probability_update(probability_matrix, bot)
@@ -239,6 +248,55 @@ def probabilistic_search(alpha: float):
     elif BOT == 4: 
 
 def deterministic_multiple_leaks():
+    bot = randValid()
+    leak1 = leakRandValid()
+    leak2 = leakRandValid()
 
+    actions = 0
+    if BOT == 5:
+        while bot != leak1 and bot != leak2: 
+            if(detect(bot, leak1)):
+                lst = create_detection_square(bot)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+            elif(detect(bot, leak2)):
+                lst = create_detection_square(bot)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+            else: 
+                MAY_CONTAIN_LEAK.remove(bot)
+            next_location = next_move(bot, MAY_CONTAIN_LEAK)
+            actions += math.dist(next_location, bot)
+            bot = next_location
+
+    elif BOT == 6:
+        while bot != leak1 and bot != leak2: 
+            detections = []
+            if(detect(bot, leak1)):
+                lst = create_detection_square(bot)
+                detections.append(lst)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+            elif(detect(bot, leak2)):
+                lst = create_detection_square(bot)
+                detections.append(lst)
+                MAY_CONTAIN_LEAK = intersection(MAY_CONTAIN_LEAK, lst)
+                actions += 1
+            else: 
+                MAY_CONTAIN_LEAK.remove(bot)
+                MAY_CONTAIN_LEAK = [(i,j) for (i,j) in MAY_CONTAIN_LEAK if i not in detections]
+            next_location = next_move(bot, MAY_CONTAIN_LEAK)
+            actions += math.dist(next_location, bot)
+            bot = next_location
+    return actions
 
 def probabilistic_multiple_leaks():
+    if BOT == 7:
+
+    elif BOT == 8: 
+    
+    elif BOT == 9: 
+
+
+if __name__ == "__main__":
+
