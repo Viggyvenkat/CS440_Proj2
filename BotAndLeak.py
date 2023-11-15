@@ -8,7 +8,7 @@ from collections import deque
 
 GRID_SIZE = 30
 DISPLAY_TEST = True
-BOT_TYPE = 3
+BOT_TYPE = 5
 BOT_VISIBILITY = 0
 ALPHA = 0.1
 INF = 2**32-1
@@ -107,8 +107,13 @@ def randValid():
 def invalid_start():
     if BOT_TYPE <= 2:
         return within_distance(robot_location,leak_location,BOT_VISIBILITY)
-    if BOT_TYPE == 3:
+    if BOT_TYPE == 3 or BOT_TYPE == 4:
         return robot_location == leak_location
+    
+def second_invalid_start():
+    if BOT_TYPE <= 4:
+        return False
+    return robot_location == second_leak_location or leak_location == second_leak_location 
 
 # opens closed neighbors in random order
 def open_closed_neighbor(pair):
@@ -144,8 +149,17 @@ for pair,_ in to_be_added.items():
 robot_location = randValid()
 robot_path = {} # all cells that robot plans on traversing through
 leak_location = randValid()
+second_leak_location = randValid()
+
 while invalid_start():
     leak_location = randValid()
+while second_invalid_start():
+    second_leak_location = randValid()
+
+if BOT_TYPE >= 5:
+    leak_location = (leak_location,second_leak_location)
+    
+print(leak_location)
 
 for i in range(GRID_SIZE):
     for j in range(GRID_SIZE):
@@ -190,24 +204,6 @@ def bot_1_2_detect_surroundings():
 def good_step_bot_1_2(location):
     return location in corridor_dict and location not in bot_data
 
-def populate_bot_2_within_leak_perimeter():
-    global within_leak_perimeter,robot_location,possible_leaks,BOT_TYPE
-    within_leak_perimeter.clear()
-
-    for location in possible_leaks:
-        if within_distance(robot_location,location,BOT_VISIBILITY):
-            BOT_TYPE = 1
-            return
-    
-    for (currX,currY) in possible_leaks:
-        for i in range(BOT_VISIBILITY+1):
-            for j in range(BOT_VISIBILITY+1):
-                deltas = [(1,1),(1,-1),(-1,-1),(-1,1),]
-                for delta in deltas:
-                    new_pair = (currX+delta[0]*i,currY+delta[1]*j)
-                    if new_pair in corridor_dict:
-                        within_leak_perimeter[new_pair] = True
-
 # Creates robot_path_list: the path the bot plans on taking
 def populate_bot_1_2_queue(endpoint):
     tmp_iterator = endpoint
@@ -224,8 +220,8 @@ def is_end_goal(curr_location,iteration):
     if BOT_TYPE == 1:
         return curr_location in possible_leaks
     if BOT_TYPE == 2:
-        return curr_location in within_leak_perimeter
-    if BOT_TYPE == 3:
+        return curr_location in possible_leaks
+    if BOT_TYPE == 3 or BOT_TYPE  == 4:
         if iteration == 0:
             return False
         if iteration == 1:
@@ -259,7 +255,7 @@ def bot_1_2_3_closest_to_robot(iteration):
                 if is_end_goal(new_pair,iteration): 
                     endpoint = new_pair
                     break
-    if BOT_TYPE <= 2 or (BOT_TYPE == 3 and iteration >= 1):
+    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1):
         populate_bot_1_2_queue(endpoint)
         return robot_path_list[-1]
     return (-1,-1)
@@ -291,7 +287,6 @@ def listen_for_beep():
     # distance is now bot_data_length[leak_location]
     d = bot_data_length[leak_location]
     prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
-    print(prob_of_beep)
     #check if beep occurs
     if(random.random() <= prob_of_beep):
         return True
@@ -342,18 +337,87 @@ def update_probabilities_for_no_beep():
         probability_leak[pair] /= sum
         
     
+def bot_2_poss_leaks_in_range():
+    cnt = 0
+    for i in range(BOT_VISIBILITY+1):
+            for j in range(BOT_VISIBILITY+1):
+                if i == 0 and j == 0:
+                    continue
+                deltas = [(1,1),(1,-1),(-1,-1),(-1,1),]
+                for delta in deltas:
+                    if((robot_location[0]+i*delta[0],robot_location[1]+j*delta[1])
+                        in possible_leaks):
+                        cnt += 1
     
-def bot_1_2_3_run():
+    return cnt
+
+# def bot_1_2_3_4_run():
+#     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+#     if BOT_TYPE == 2:
+#         populate_bot_2_within_leak_perimeter()
+    
+#     next_location = bot_1_2_3_closest_to_robot(0)
+    
+#     if BOT_TYPE == 3 or BOT_TYPE == 4:
+#         best_cell = bot_3_best_cell()
+#         next_location = bot_1_2_3_closest_to_robot(1)
+    
+        
+#     robot_location = next_location
+#     NUMBER_OF_ACTIONS += 1
+    
+#     if robot_location == leak_location:
+#         return
+    
+#     if BOT_TYPE == 3:
+#         # Not at leak location, so must update probabilities
+#         update_probabilities()
+#         bot_1_2_3_closest_to_robot(0)
+#         #listen for chirp
+#         if listen_for_beep():
+#             update_probabilities_for_beep()
+#         else:
+#             update_probabilities_for_no_beep()
+        
+#     if BOT_TYPE == 4:
+#         update_probabilities()
+#         #approx 50% of the time, check for beeps
+#         if random.random() <= 0.3 :
+#             # Not at leak location, so must update probabilities
+#             bot_1_2_3_closest_to_robot(0)
+#             #listen for chirp
+#             if listen_for_beep():
+#                 update_probabilities_for_beep()
+#             else:
+#                 update_probabilities_for_no_beep()
+            
+#     if BOT_TYPE <= 2:
+#         if robot_location in possible_leaks:
+#             del possible_leaks[robot_location]
+            
+#         bot_1_2_detect_surroundings()
+     
+def bot_5_run():
     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
-    if BOT_TYPE == 2:
-        populate_bot_2_within_leak_perimeter()
+    next_location = bot_1_2_3_closest_to_robot(0)
+    robot_location = next_location
+    NUMBER_OF_ACTIONS += 1
     
+    if robot_location in leak_location:
+        del leak_location[robot_location]
+        return
+    
+    if robot_location in possible_leaks:
+        del possible_leaks[robot_location]
+            
+    bot_1_2_detect_surroundings()
+    
+def bot_4_run():
+    global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_1_2_3_closest_to_robot(0)
     
-    if BOT_TYPE == 3:
-        best_cell = bot_3_best_cell()
-        # print(best_cell)
-        next_location = bot_1_2_3_closest_to_robot(1)
+    best_cell = bot_3_best_cell()
+    next_location = bot_1_2_3_closest_to_robot(1)
     
         
     robot_location = next_location
@@ -362,33 +426,77 @@ def bot_1_2_3_run():
     if robot_location == leak_location:
         return
     
-    if BOT_TYPE == 3:
-        sum = 0
-        for pair in probability_leak:
-            sum += probability_leak[pair]
+    update_probabilities()
+    #approx 30% of the time, check for beeps
+    if random.random() <= 0.3 :
         # Not at leak location, so must update probabilities
-        update_probabilities()
         bot_1_2_3_closest_to_robot(0)
         #listen for chirp
         if listen_for_beep():
-            print("BEEP!")
             update_probabilities_for_beep()
         else:
             update_probabilities_for_no_beep()
-        # for pair in probability_leak:
-        #     print(pair,probability_leak[pair])
-            
-    if BOT_TYPE <= 2:
-        if robot_location in possible_leaks:
-            del possible_leaks[robot_location]
-            
+     
+def bot_3_run():
+    global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    next_location = bot_1_2_3_closest_to_robot(0)
+
+    best_cell = bot_3_best_cell()
+    next_location = bot_1_2_3_closest_to_robot(1)
+    
+    robot_location = next_location
+    
+    if robot_location == leak_location:
+        return
+    
+    # Not at leak location, so must update probabilities
+    update_probabilities()
+    bot_1_2_3_closest_to_robot(0)
+    #listen for chirp
+    if listen_for_beep():
+        update_probabilities_for_beep()
+    else:
+        update_probabilities_for_no_beep()
+     
+def bot_2_run():
+    global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    next_location = bot_1_2_3_closest_to_robot(0)
+    robot_location = next_location
+    NUMBER_OF_ACTIONS += 1
+    
+    if robot_location == leak_location:
+        return
+    
+    if robot_location in possible_leaks:
+        del possible_leaks[robot_location]
+    
+    thirty_percent = 0.3*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
+    seventy_percent = 0.7*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
+    possible_cells_in_range = bot_2_poss_leaks_in_range()
+    
+    # only check if there are sufficient cells of both type, so any data is useful
+    if possible_cells_in_range >= thirty_percent and possible_cells_in_range <= seventy_percent:
         bot_1_2_detect_surroundings()
+        
+def bot_1_run():
+    global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    next_location = bot_1_2_3_closest_to_robot(0)
+    robot_location = next_location
+    NUMBER_OF_ACTIONS += 1
+    
+    if robot_location == leak_location:
+        return
+    
+    if robot_location in possible_leaks:
+        del possible_leaks[robot_location]
+            
+    bot_1_2_detect_surroundings()
 
 # which color a cell should be
 def which_color(i,j):
     if (i,j) == robot_location:
         return COLOR_ROBOT
-    if (i,j) == leak_location:
+    if (i,j) == leak_location or (i,j) in leak_location:
         return COLOR_LEAK
     if (i,j) in robot_path:
         return COLOR_PATH
@@ -431,10 +539,18 @@ if DISPLAY_TEST:
 
 try:
     while True:
-        if(robot_location == leak_location): sys.exit(0)
+        if(robot_location == leak_location or robot_location in leak_location): sys.exit(0)
 
-        if BOT_TYPE == 1 or BOT_TYPE == 2 or BOT_TYPE == 3:
-            bot_1_2_3_run()
+        if BOT_TYPE == 1:
+            bot_1_run()
+        elif BOT_TYPE == 2:
+            bot_2_run()
+        elif BOT_TYPE == 3:
+            bot_3_run()
+        elif BOT_TYPE == 4:
+            bot_4_run()
+        elif BOT_TYPE == 5:
+            bot_5_run()
             
         # Changes display
         if DISPLAY_TEST:
