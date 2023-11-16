@@ -6,10 +6,10 @@ import heapq
 import math
 from collections import deque
 
-GRID_SIZE = 10
+GRID_SIZE = 30
 DISPLAY_TEST = True
-BOT_TYPE = 5
-BOT_VISIBILITY = 3
+BOT_TYPE = 6
+BOT_VISIBILITY = 5
 ALPHA = 0.1
 INF = 2**32-1
 NUMBER_OF_ACTIONS = 0
@@ -105,7 +105,7 @@ def randValid():
         if loc in corridor_dict: return loc
         
 def invalid_start():
-    if BOT_TYPE <= 2 or BOT_TYPE == 5:
+    if BOT_TYPE <= 2 or BOT_TYPE == 5 or BOT_TYPE == 6:
         return within_distance(robot_location,leak_location,BOT_VISIBILITY)
     if BOT_TYPE == 3 or BOT_TYPE == 4:
         return robot_location == leak_location
@@ -202,7 +202,7 @@ def bot_1_2_detect_surroundings():
                                             robot_location[1]+j*delta[1])]
 
 
-def bot_5_detect_surroundings():
+def bot_5_6_detect_surroundings():
     global robot_location,NUMBER_OF_ACTIONS
     NUMBER_OF_ACTIONS += 1
     #if robot can detect that there is a leak nearby
@@ -259,6 +259,8 @@ def is_end_goal(curr_location,iteration):
             return curr_location == leak_location
     if BOT_TYPE == 5:
         return curr_location in possible_leaks
+    if BOT_TYPE == 6:
+        return curr_location in possible_leaks
 
 # performs BFS on grid to find closest point that could be a leak
 # populates bot_data and bot_data_length
@@ -286,7 +288,7 @@ def bot_1_2_3_closest_to_robot(iteration):
                 if is_end_goal(new_pair,iteration): 
                     endpoint = new_pair
                     break
-    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1) or BOT_TYPE == 5:
+    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1) or BOT_TYPE == 5 or BOT_TYPE == 6:
         populate_bot_1_2_queue(endpoint)
         return robot_path_list[-1]
     return (-1,-1)
@@ -368,7 +370,7 @@ def update_probabilities_for_no_beep():
         probability_leak[pair] /= sum
         
     
-def bot_2_poss_leaks_in_range():
+def bot_2_6_poss_leaks_in_range():
     cnt = 0
     for i in range(BOT_VISIBILITY+1):
             for j in range(BOT_VISIBILITY+1):
@@ -427,7 +429,30 @@ def bot_2_poss_leaks_in_range():
 #             del possible_leaks[robot_location]
             
 #         bot_1_2_detect_surroundings()
-     
+
+def bot_6_run():
+    global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    next_location = bot_1_2_3_closest_to_robot(0)
+    robot_location = next_location
+    NUMBER_OF_ACTIONS += 1
+    
+    if robot_location in leak_location:
+        leak_location = tuple(item for item in leak_location if item != robot_location)
+        for i in range(GRID_SIZE):
+            for j in range(GRID_SIZE):
+                possible_leaks[(i,j)] = True
+        return
+    
+    if robot_location in possible_leaks:
+        del possible_leaks[robot_location]
+    
+    thirty_percent = 0.3*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
+    possible_cells_in_range = bot_2_6_poss_leaks_in_range()
+    
+    # only check if there are sufficient cells of both type, so any data is useful
+    if possible_cells_in_range >= thirty_percent:
+        bot_5_6_detect_surroundings()
+
 def bot_5_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_1_2_3_closest_to_robot(0)
@@ -443,8 +468,8 @@ def bot_5_run():
     
     if robot_location in possible_leaks:
         del possible_leaks[robot_location]
-            
-    bot_5_detect_surroundings()
+    
+    bot_5_6_detect_surroundings()
     
 def bot_4_run():
     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
@@ -505,11 +530,10 @@ def bot_2_run():
         del possible_leaks[robot_location]
     
     thirty_percent = 0.3*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
-    seventy_percent = 0.7*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
-    possible_cells_in_range = bot_2_poss_leaks_in_range()
+    possible_cells_in_range = bot_2_6_poss_leaks_in_range()
     
     # only check if there are sufficient cells of both type, so any data is useful
-    if possible_cells_in_range >= thirty_percent and possible_cells_in_range <= seventy_percent:
+    if possible_cells_in_range >= thirty_percent:
         bot_1_2_detect_surroundings()
         
 def bot_1_run():
@@ -573,8 +597,8 @@ if DISPLAY_TEST:
 
 try:
     while True:
-        if(robot_location == leak_location or robot_location in leak_location): sys.exit(0)
-        print(robot_location)
+        if(robot_location == leak_location or robot_location in leak_location or leak_location == ()): sys.exit(0)
+        print(leak_location)
         if BOT_TYPE == 1:
             bot_1_run()
         elif BOT_TYPE == 2:
@@ -585,6 +609,8 @@ try:
             bot_4_run()
         elif BOT_TYPE == 5:
             bot_5_run()
+        elif BOT_TYPE == 6:
+            bot_6_run()
             
         # Changes display
         if DISPLAY_TEST:
