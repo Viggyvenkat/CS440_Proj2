@@ -638,8 +638,8 @@ def bot_4_run():
         return
     
     update_probabilities()
-    #approx 30% of the time, check for beeps
-    if random.random() <= 0.3 :
+    #approx 50% of the time, check for beeps
+    if random.random() <= 0.5 :
         # Not at leak location, so must update probabilities
         bot_bfs(0)
         #listen for chirp
@@ -656,6 +656,7 @@ def bot_3_run():
     next_location = bot_bfs(1)
     
     robot_location = next_location
+    NUMBER_OF_ACTIONS += 1
     
     if robot_location == leak_location:
         return
