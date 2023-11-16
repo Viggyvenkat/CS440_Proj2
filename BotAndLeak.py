@@ -6,10 +6,10 @@ import heapq
 import math
 from collections import deque
 
-GRID_SIZE = 30
+GRID_SIZE = 10
 DISPLAY_TEST = True
 BOT_TYPE = 5
-BOT_VISIBILITY = 0
+BOT_VISIBILITY = 3
 ALPHA = 0.1
 INF = 2**32-1
 NUMBER_OF_ACTIONS = 0
@@ -105,7 +105,7 @@ def randValid():
         if loc in corridor_dict: return loc
         
 def invalid_start():
-    if BOT_TYPE <= 2:
+    if BOT_TYPE <= 2 or BOT_TYPE == 5:
         return within_distance(robot_location,leak_location,BOT_VISIBILITY)
     if BOT_TYPE == 3 or BOT_TYPE == 4:
         return robot_location == leak_location
@@ -113,7 +113,7 @@ def invalid_start():
 def second_invalid_start():
     if BOT_TYPE <= 4:
         return False
-    return robot_location == second_leak_location or leak_location == second_leak_location 
+    return leak_location == second_leak_location or within_distance(robot_location,second_leak_location,BOT_VISIBILITY) 
 
 # opens closed neighbors in random order
 def open_closed_neighbor(pair):
@@ -182,7 +182,7 @@ def bot_1_2_detect_surroundings():
     #if robot can detect that there is a leak nearby
     if within_distance(robot_location,leak_location,BOT_VISIBILITY):
         # remove all possible leaks other than ones in the range
-        for (i,j) in possible_leaks.copy:
+        for (i,j) in possible_leaks.copy():
             if not within_distance(robot_location,(i,j),BOT_VISIBILITY):
                 del possible_leaks[(i,j)]
     else:
@@ -201,6 +201,35 @@ def bot_1_2_detect_surroundings():
                         del possible_leaks[(robot_location[0]+i*delta[0],
                                             robot_location[1]+j*delta[1])]
 
+
+def bot_5_detect_surroundings():
+    global robot_location,NUMBER_OF_ACTIONS
+    NUMBER_OF_ACTIONS += 1
+    #if robot can detect that there is a leak nearby
+    if within_distance(robot_location,leak_location[0],BOT_VISIBILITY) or (len(leak_location) != 1 and within_distance(robot_location,leak_location[1],BOT_VISIBILITY)):
+        print(len(possible_leaks))
+        # for i in possible_leaks:
+            
+        # remove all possible leaks other than ones in the range
+        for (i,j) in possible_leaks.copy():
+            if not within_distance(robot_location,(i,j),BOT_VISIBILITY):
+                del possible_leaks[(i,j)]
+    else:
+        #remove all possible leaks that are in range of robot_location
+        if robot_location in possible_leaks:
+            del possible_leaks[robot_location]
+        #remove all leaks that are in the range of deletion
+        for i in range(BOT_VISIBILITY+1):
+            for j in range(BOT_VISIBILITY+1):
+                if i == 0 and j == 0:
+                    continue
+                deltas = [(1,1),(1,-1),(-1,-1),(-1,1),]
+                for delta in deltas:
+                    if((robot_location[0]+i*delta[0],robot_location[1]+j*delta[1])
+                        in possible_leaks):
+                        del possible_leaks[(robot_location[0]+i*delta[0],
+                                            robot_location[1]+j*delta[1])]
+                    
 def good_step_bot_1_2(location):
     return location in corridor_dict and location not in bot_data
 
@@ -228,6 +257,8 @@ def is_end_goal(curr_location,iteration):
             return curr_location == best_cell
         if iteration == 2:
             return curr_location == leak_location
+    if BOT_TYPE == 5:
+        return curr_location in possible_leaks
 
 # performs BFS on grid to find closest point that could be a leak
 # populates bot_data and bot_data_length
@@ -255,7 +286,7 @@ def bot_1_2_3_closest_to_robot(iteration):
                 if is_end_goal(new_pair,iteration): 
                     endpoint = new_pair
                     break
-    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1):
+    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1) or BOT_TYPE == 5:
         populate_bot_1_2_queue(endpoint)
         return robot_path_list[-1]
     return (-1,-1)
@@ -398,19 +429,22 @@ def bot_2_poss_leaks_in_range():
 #         bot_1_2_detect_surroundings()
      
 def bot_5_run():
-    global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_1_2_3_closest_to_robot(0)
     robot_location = next_location
     NUMBER_OF_ACTIONS += 1
     
     if robot_location in leak_location:
-        del leak_location[robot_location]
+        leak_location = tuple(item for item in leak_location if item != robot_location)
+        for i in range(GRID_SIZE):
+            for j in range(GRID_SIZE):
+                possible_leaks[(i,j)] = True
         return
     
     if robot_location in possible_leaks:
         del possible_leaks[robot_location]
             
-    bot_1_2_detect_surroundings()
+    bot_5_detect_surroundings()
     
 def bot_4_run():
     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
@@ -540,7 +574,7 @@ if DISPLAY_TEST:
 try:
     while True:
         if(robot_location == leak_location or robot_location in leak_location): sys.exit(0)
-
+        print(robot_location)
         if BOT_TYPE == 1:
             bot_1_run()
         elif BOT_TYPE == 2:
