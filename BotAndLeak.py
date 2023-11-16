@@ -10,7 +10,7 @@ GRID_SIZE = 50
 DISPLAY_TEST = False
 BOT_TYPE =7
 BOT_VISIBILITY = 0
-ALPHA = 0.1
+ALPHA = 0.0
 INF = 2**32-1
 NUMBER_OF_ACTIONS = 0
 
@@ -19,6 +19,10 @@ NUMBER_OF_ACTIONS = 0
 if len(sys.argv) == 4:
     GRID_SIZE = int(sys.argv[1])
     BOT_TYPE = int(sys.argv[2])
+    if BOT_TYPE == 3 or BOT_TYPE == 4 or BOT_TYPE >= 7:
+        ALPHA = float(sys.argv[3])
+    else:
+        BOT_VISIBILITY = int(sys.argv[3])
     DISPLAY_TEST = False
 elif len(sys.argv) != 1:
     print("Usage: python your_script.py <GRID_SIZE>, <BOT_TYPE>")
