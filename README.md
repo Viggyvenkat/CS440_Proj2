@@ -10,6 +10,37 @@ P(at cell (x,y) given we not got a beep)) = P(we not get a beep given at cell (x
 
 For 8/9: 
 
+for each potential location of a leak, denote L(x,y) true if there is a leak at x,y.
+we have 
+P( L(x,y) given we heard a beep) = P(hear a beep given L(x,y))*P(L(x,y))/P(hear a beep)
+
+P(hear a beep) is constant across all x,y , so we can just normalize at the end
+
+If we know P(hear a beep from one leak), we have the solution
+
+P(hear a beep given L(x,y)) = P(hear a beep FROM (x,y) to bot_loc)+P(hear a beep NOT from (x,y) to bot_loc) - P(hear a beep FROM (x,y) to bot_loc)*P(hear a beep NOT from (x,y) to bot_loc)
+
+
+Prob(havent heard a beep
+P(hear a beep) = x
+
+P(hear a beep NOT from (x,y) to bot_loc) = x-P(hear beep from (x,y)
+
+P(L(x,y) given heard no beep) = P(L(x,y) and (x,y) gives no beep))*P(no beep heard from elsewhere)
+= P(L(x,y) and (x,y) gives no beep))*(prob_beep
+
+
+P(beep heard from elsewhere) 
+= prob(beep and beep not from (x,y))
+know:
+prob(beep and not considering x,y) + ((1-prob(beep and not considering x,y))*prob(beep from x,y)= prob_beep 
+prob(beep and not considering x,y) + prob(beep from x,y) - prob(beep and not considering x,y)prob(beep from x,y)= prob_beep 
+prob(beep and not considering x,y)(1-prob(beep from x,y)) + prob(beep from x,y) = prob_beep 
+prob(beep and not considering x,y)(1-prob(beep from x,y)) = prob_beep - prob(beep from x,y)
+prob(beep and not considering x,y) = (prob_beep - prob(beep from x,y))/((1-prob(beep from x,y)))
+
+However, 3 and 4 were tested on a 50x50 grid and 7,8,9 were tested on a 20x20 grid. 
+
 3) for 1 vs 2: bot 2 on average was 100 actions less than bot 1.
   for bot 3 vs 4: For both 3 vs 4, there is approximately a difference of 35 actions at an alpha value of 0.01. Whereas, when the alpha value scales to 0.1, bot 4 performs worse with an approximately 100 actions difference between bot 3 and 4. 
   for bot 5 vs 6: for both 5 vs 6, as the k value increases the number of actions between 6 and 5 increases, whereas 6 is always less than 5. When k = 1, there is about a 100 actions difference for a grid of 50 x 50, when the k values increases to 10 there is approximately a 1100 average difference and when the k value increases to 21, bot 2 performs worse than bot 1 with about a difference in 5000 actions. This can attributed to randomness. 
