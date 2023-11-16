@@ -229,7 +229,8 @@ def bot_5_6_detect_surroundings():
                         in possible_leaks):
                         del possible_leaks[(robot_location[0]+i*delta[0],
                                             robot_location[1]+j*delta[1])]
-                    
+
+       
 def good_step_bot_1_2(location):
     return location in corridor_dict and location not in bot_data
 
@@ -245,6 +246,7 @@ def populate_bot_path(endpoint):
         print(tmp_iterator,"NOT IN BOT_DATA")
         sys.exit(1)
 
+# determines if a location is the end goal for a certain dfs call
 def is_end_goal(curr_location,iteration):
     if BOT_TYPE == 1:
         return curr_location in possible_leaks
@@ -307,7 +309,8 @@ probability_leak[robot_location] = 0
 for pair in corridor_dict:
     if pair == robot_location: continue
     probability_leak[pair] = 1.0/(len(corridor_dict)-1)
-    
+
+# determines cell with lowest probability
 def probability_best_cell():
         
     global robot_location,probability_leak
@@ -321,6 +324,7 @@ def probability_best_cell():
 
     return best_cell
 
+# determines if a beep is heard for only one leak
 def listen_for_beep():
     global robot_location,robot_path_list,ALPHA,NUMBER_OF_ACTIONS
     NUMBER_OF_ACTIONS += 1
@@ -332,6 +336,7 @@ def listen_for_beep():
         return True
     return False
 
+# determines if a beep is heard when there are potentially multiple leaks
 def listen_for_beep_multiple_leaks():
     global robot_location,robot_path_list,ALPHA,NUMBER_OF_ACTIONS
     NUMBER_OF_ACTIONS += 1
@@ -344,7 +349,7 @@ def listen_for_beep_multiple_leaks():
             return True
     return False
     
-    
+# update probabilities when movement occurs
 def update_probabilities():
     for location in probability_leak:
         if location == robot_location: continue
@@ -441,6 +446,7 @@ def update_probabilities_for_no_beep_bot_8_9():
             continue
         probability_leak[pair] /= sum
 
+# updates the probabilities if there is beep
 def update_probabilities_for_beep():
     # saw a beep, so we need to calculate the prob of hearing a beep at all    
     
@@ -459,6 +465,7 @@ def update_probabilities_for_beep():
     for pair in probability_leak:
         probability_leak[pair] /= sum
         
+# updates the probabilities if there is not beep
 def update_probabilities_for_no_beep():
     # saw a beep, so we need to calculate the prob of hearing a beep at all    
     
@@ -477,7 +484,7 @@ def update_probabilities_for_no_beep():
     for pair in probability_leak:
         probability_leak[pair] /= sum
         
-    
+# for bots 2 and 6, finds count of possible leaks in visibility
 def bot_2_6_poss_leaks_in_range():
     cnt = 0
     for i in range(BOT_VISIBILITY+1):
@@ -492,6 +499,7 @@ def bot_2_6_poss_leaks_in_range():
     
     return cnt
 
+# run bot 9
 def bot_9_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     
@@ -504,11 +512,13 @@ def bot_9_run():
     #     print("")
     next_location = bot_bfs(0)
 
+    # finds cell with highest probability
     best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
     
+    #removes leak from leak_location
     if robot_location in leak_location:
         leak_location = tuple(item for item in leak_location if item != robot_location)
         if leak_location == ():
@@ -517,8 +527,8 @@ def bot_9_run():
     # Not at leak location, so must update probabilities
     update_probabilities()
     bot_bfs(0)
-    #listen for chirp only 30% of the time
-    if random.random() <= 0.3:
+    #listen for chirp only 50% of the time
+    if random.random() <= 0.5:
         if listen_for_beep_multiple_leaks():
             # print("BEEP!")
             update_probabilities_for_beep_bot_8_9()
@@ -526,6 +536,7 @@ def bot_9_run():
             # print("NO BEEP!")
             update_probabilities_for_no_beep_bot_8_9()
 
+# run bot 8
 def bot_8_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     
@@ -538,11 +549,13 @@ def bot_8_run():
     #     print("")
     next_location = bot_bfs(0)
 
+    # finds cell with highest probability
     best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
     
+    #removes leak from leak_location
     if robot_location in leak_location:
         leak_location = tuple(item for item in leak_location if item != robot_location)
         if leak_location == ():
@@ -559,15 +572,18 @@ def bot_8_run():
         # print("NO BEEP!")
         update_probabilities_for_no_beep_bot_8_9()
 
+# runs bot 7; same as bot 3, except when a leak is detected it is removed and the process continues
 def bot_7_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
 
+    # finds cell with highest probability
     best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
     
+    #removes leak from leak_location
     if robot_location in leak_location:
         leak_location = tuple(item for item in leak_location if item != robot_location)
         if leak_location == ():
@@ -576,18 +592,20 @@ def bot_7_run():
     # Not at leak location, so must update probabilities
     update_probabilities()
     bot_bfs(0)
-    #listen for chirp
+    # ALWAYS listen for chirp
     if listen_for_beep_multiple_leaks():
         update_probabilities_for_beep()
     else:
         update_probabilities_for_no_beep()
 
+# runs bot 6; same as bot 2, except when a leak is detected it is removed and the process continues 
 def bot_6_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
     robot_location = next_location
     NUMBER_OF_ACTIONS += 1
     
+    # removes leak from leaks
     if robot_location in leak_location:
         leak_location = tuple(item for item in leak_location if item != robot_location)
         for i in range(GRID_SIZE):
@@ -598,6 +616,7 @@ def bot_6_run():
     if robot_location in possible_leaks:
         del possible_leaks[robot_location]
     
+    # checks to see if 30% of visibile cells COULD be a leak
     thirty_percent = 0.3*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
     possible_cells_in_range = bot_2_6_poss_leaks_in_range()
     
@@ -605,12 +624,14 @@ def bot_6_run():
     if possible_cells_in_range >= thirty_percent:
         bot_5_6_detect_surroundings()
 
+# runs bot 5; same as bot 1, except when a leak is detected it is removed and the process continues
 def bot_5_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
     robot_location = next_location
     NUMBER_OF_ACTIONS += 1
     
+    # removes leak from leaks
     if robot_location in leak_location:
         leak_location = tuple(item for item in leak_location if item != robot_location)
         for i in range(GRID_SIZE):
@@ -623,14 +644,16 @@ def bot_5_run():
     
     bot_5_6_detect_surroundings()
     
+# runs bot 4
 def bot_4_run():
     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
     
+    #find cell with highest probability
     best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
-        
+    #goes to that cell
     robot_location = next_location
     NUMBER_OF_ACTIONS += 1
     
@@ -648,10 +671,12 @@ def bot_4_run():
         else:
             update_probabilities_for_no_beep()
 
+# runs bot 3
 def bot_3_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
 
+    # find cell with highest probability
     best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
@@ -664,7 +689,8 @@ def bot_3_run():
     # Not at leak location, so must update probabilities
     update_probabilities()
     bot_bfs(0)
-    #listen for chirp
+    
+    # ALWAYS listen for chirp
     if listen_for_beep():
         update_probabilities_for_beep()
     else:
@@ -683,6 +709,7 @@ def bot_2_run():
     if robot_location in possible_leaks:
         del possible_leaks[robot_location]
     
+    # checks to see if 30% of visibile cells COULD be the leak
     thirty_percent = 0.3*((2*BOT_VISIBILITY+1)*(2*BOT_VISIBILITY+1)-1)
     possible_cells_in_range = bot_2_6_poss_leaks_in_range()
     
