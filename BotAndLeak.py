@@ -4,13 +4,16 @@ import time
 import sys
 import heapq
 import math
+from decimal import Decimal, getcontext
 from collections import deque
+
+getcontext().prec = 100
 
 GRID_SIZE = 50
 DISPLAY_TEST = False
-BOT_TYPE =7
+BOT_TYPE =8
 BOT_VISIBILITY = 0
-ALPHA = 0.0
+ALPHA = 0.01
 INF = 2**32-1
 NUMBER_OF_ACTIONS = 0
 
@@ -242,7 +245,7 @@ def populate_bot_path(endpoint):
         robot_path[tmp_iterator] = True
         tmp_iterator = bot_data[tmp_iterator]
     if tmp_iterator not in bot_data: 
-        print(tmp_iterator,"NOT IN BOT_DATA")
+        print(tmp_iterator,"NOT IN BOT_DATA",leak_location)
         sys.exit(1)
 
 def is_end_goal(curr_location,iteration):
@@ -303,10 +306,10 @@ def bot_bfs(iteration):
     
 # for Bot 3, bot_data gives parent cell, and bot_data_length givesdistance from robot_location
 probability_leak = {}
-probability_leak[robot_location] = 0
+probability_leak[robot_location] = Decimal('0')
 for pair in corridor_dict:
     if pair == robot_location: continue
-    probability_leak[pair] = 1.0/(len(corridor_dict)-1)
+    probability_leak[pair] = Decimal(1.0)/Decimal((len(corridor_dict)-1))
     
 def probability_best_cell():
         
@@ -348,27 +351,26 @@ def listen_for_beep_multiple_leaks():
 def update_probabilities():
     for location in probability_leak:
         if location == robot_location: continue
-        probability_leak[location] = probability_leak[location]/(1.0-probability_leak[robot_location])
+        probability_leak[location] = probability_leak[location]/(Decimal(1.0)-probability_leak[robot_location])
         
-    probability_leak[robot_location] = 0
+    probability_leak[robot_location] = Decimal(0)
 
 def update_probabilities_for_beep_bot_8_9():
-    
     
     # saw a beep, so we need to calculate the prob of hearing a beep at all    
     
     # GOAL: get P(hear a beep NOT from (x,y) to bot_loc). To do so, we calculate P(hear a beep)
-    prob_beep = 1
+    prob_beep = Decimal(1)
     for pair in probability_leak:
         if probability_leak[pair] == 0:
             continue
         
         d = bot_data_length[pair]
-        prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
+        prob_of_beep = Decimal(math.pow(Decimal(math.e),Decimal(-1*ALPHA*(d-1))))
         # only add prob that we havent heard a beep yet * prob of beep to avoid overlap
-        prob_beep *= (1-prob_of_beep)
-        
+        prob_beep *= (1-prob_of_beep*probability_leak[pair])
     prob_beep = 1-prob_beep
+    # print(prob_beep)
         
     # P(beep given (x,y) is leak) = P(beep from (x,y) + P(beep from elsewhere)- P(beep from (x,y) and beep from elsewhere)
     # = prob_of_beep + ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y)))) - ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y))))*prob_of_beep
@@ -381,15 +383,15 @@ def update_probabilities_for_beep_bot_8_9():
     
     
     # P(we get a beep given its at cell (x,y)), so we used bot_bfs to populate bot_data_length
-    sum = 0.0
+    sum = Decimal(0.0)
     for pair in probability_leak:
-        if probability_leak[pair] == 0:
+        if probability_leak[pair] == Decimal(0):
             continue
         # distance is now bot_data_length[leak_location]
         d = bot_data_length[pair]
-        prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
-        if prob_of_beep == 1:
-            probability_leak[pair] = 0
+        prob_of_beep = Decimal(math.pow(Decimal(math.e),Decimal(-1*ALPHA*(d-1))))
+        if prob_of_beep == Decimal(1):
+            probability_leak[pair] = Decimal(0)
         else:
             mult_value = prob_of_beep + prob_of_beep + ((prob_beep - prob_of_beep)) - ((prob_beep - prob_of_beep))*prob_of_beep
 
@@ -399,20 +401,20 @@ def update_probabilities_for_beep_bot_8_9():
     
     #sum should be 1 (by dividing by P(getting a beep)), so we normalize by dividing by sum
     for pair in probability_leak:
-        probability_leak[pair] /= sum
+        probability_leak[pair] /= Decimal(sum)
         
 def update_probabilities_for_no_beep_bot_8_9():
     # logic very similar to update_probabilities_for_beep_bot_8_9()
     
     prob_beep = 1
     for pair in probability_leak:
-        if probability_leak[pair] == 0:
+        if probability_leak[pair] == Decimal(0):
             continue
         
         d = bot_data_length[pair]
-        prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
+        prob_of_beep = Decimal(math.pow(Decimal(math.e),Decimal(-1*ALPHA*(d-1))))
         # only add prob that we havent heard a beep yet * prob of beep to avoid overlap
-        prob_beep *= (1-prob_of_beep)
+        prob_beep *= (1-prob_of_beep*probability_leak[pair])
         
     prob_beep = 1-prob_beep
         
@@ -420,15 +422,15 @@ def update_probabilities_for_no_beep_bot_8_9():
     # = (1-prob_of_beep) + (1- ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y))))) - (1-prob_of_beep) * (1- ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y)))))
     # = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep)/((1-prob_of_beep)))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)/((1-prob_of_beep))))
     
-    sum = 0.0
+    sum = Decimal(0.0)
     for pair in probability_leak:
         if probability_leak[pair] == 0:
             continue
         # distance is now bot_data_length[leak_location]
         d = bot_data_length[pair]
-        prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
-        if prob_of_beep == 1:
-            probability_leak[pair] = 0
+        prob_of_beep = Decimal(math.pow(Decimal(math.e),Decimal(-1*ALPHA*(d-1))))
+        if prob_of_beep == Decimal(1):
+            probability_leak[pair] = Decimal(0)
         else:
             mult_value = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)))
             # mult_value = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep)/((1-prob_of_beep)))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)/(1-prob_of_beep)))
