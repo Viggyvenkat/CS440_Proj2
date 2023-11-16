@@ -6,9 +6,9 @@ import heapq
 import math
 from collections import deque
 
-GRID_SIZE = 20
+GRID_SIZE = 50
 DISPLAY_TEST = False
-BOT_TYPE = 8
+BOT_TYPE =7
 BOT_VISIBILITY = 0
 ALPHA = 0.1
 INF = 2**32-1
@@ -257,7 +257,7 @@ def is_end_goal(curr_location,iteration):
         return curr_location in possible_leaks
     if BOT_TYPE == 6:
         return curr_location in possible_leaks
-    if BOT_TYPE == 7 or BOT_TYPE == 8:
+    if BOT_TYPE == 7 or BOT_TYPE == 8 or BOT_TYPE == 9:
         if iteration == 0:
             return False
         if iteration == 1:
@@ -291,7 +291,7 @@ def bot_bfs(iteration):
                 if is_end_goal(new_pair,iteration): 
                     endpoint = new_pair
                     break
-    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1) or BOT_TYPE == 5 or BOT_TYPE == 6 or (BOT_TYPE == 7 and iteration >= 1) or (BOT_TYPE == 8 and iteration >= 1):
+    if BOT_TYPE <= 2 or ((BOT_TYPE == 3 or BOT_TYPE == 4) and iteration >= 1) or BOT_TYPE == 5 or BOT_TYPE == 6 or (BOT_TYPE >= 7 and iteration >= 1):
         populate_bot_path(endpoint)
         return robot_path_list[-1]
     return (-1,-1)
@@ -304,7 +304,7 @@ for pair in corridor_dict:
     if pair == robot_location: continue
     probability_leak[pair] = 1.0/(len(corridor_dict)-1)
     
-def bot_3_best_cell():
+def probability_best_cell():
         
     global robot_location,probability_leak
     best_cell = robot_location
@@ -348,11 +348,13 @@ def update_probabilities():
         
     probability_leak[robot_location] = 0
 
-def update_probabilities_for_beep_bot_8():
+def update_probabilities_for_beep_bot_8_9():
+    
+    
     # saw a beep, so we need to calculate the prob of hearing a beep at all    
     
     # GOAL: get P(hear a beep NOT from (x,y) to bot_loc). To do so, we calculate P(hear a beep)
-    prob_beep = 0
+    prob_beep = 1
     for pair in probability_leak:
         if probability_leak[pair] == 0:
             continue
@@ -360,7 +362,9 @@ def update_probabilities_for_beep_bot_8():
         d = bot_data_length[pair]
         prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
         # only add prob that we havent heard a beep yet * prob of beep to avoid overlap
-        prob_beep += (1-prob_beep)*prob_of_beep
+        prob_beep *= (1-prob_of_beep)
+        
+    prob_beep = 1-prob_beep
         
     # P(beep given (x,y) is leak) = P(beep from (x,y) + P(beep from elsewhere)- P(beep from (x,y) and beep from elsewhere)
     # = prob_of_beep + ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y)))) - ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y))))*prob_of_beep
@@ -383,7 +387,9 @@ def update_probabilities_for_beep_bot_8():
         if prob_of_beep == 1:
             probability_leak[pair] = 0
         else:
-            mult_value = prob_of_beep + prob_of_beep + ((prob_beep - prob_of_beep)/((1-prob_of_beep))) - ((prob_beep - prob_of_beep)/(1-prob_of_beep))*prob_of_beep
+            mult_value = prob_of_beep + prob_of_beep + ((prob_beep - prob_of_beep)) - ((prob_beep - prob_of_beep))*prob_of_beep
+
+            # mult_value = prob_of_beep + prob_of_beep + ((prob_beep - prob_of_beep)/((1-prob_of_beep))) - ((prob_beep - prob_of_beep)/(1-prob_of_beep))*prob_of_beep
             probability_leak[pair] *= mult_value
         sum += probability_leak[pair]
     
@@ -391,10 +397,10 @@ def update_probabilities_for_beep_bot_8():
     for pair in probability_leak:
         probability_leak[pair] /= sum
         
-def update_probabilities_for_no_beep_bot_8():
-    # logic very similar to update_probabilities_for_beep_bot_8()
+def update_probabilities_for_no_beep_bot_8_9():
+    # logic very similar to update_probabilities_for_beep_bot_8_9()
     
-    prob_beep = 0
+    prob_beep = 1
     for pair in probability_leak:
         if probability_leak[pair] == 0:
             continue
@@ -402,7 +408,9 @@ def update_probabilities_for_no_beep_bot_8():
         d = bot_data_length[pair]
         prob_of_beep = math.pow(math.e,-1*ALPHA*(d-1))
         # only add prob that we havent heard a beep yet * prob of beep to avoid overlap
-        prob_beep += (1-prob_beep)*prob_of_beep
+        prob_beep *= (1-prob_of_beep)
+        
+    prob_beep = 1-prob_beep
         
     # P(no beep given L(x,y)) = P(no beep from (x,y) + P(no beep from elsewhere)- P(no beep from (x,y) and no beep from elsewhere)
     # = (1-prob_of_beep) + (1- ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y))))) - (1-prob_of_beep) * (1- ((prob_beep - prob(beep from x,y))/((1-prob(beep from x,y)))))
@@ -418,7 +426,8 @@ def update_probabilities_for_no_beep_bot_8():
         if prob_of_beep == 1:
             probability_leak[pair] = 0
         else:
-            mult_value = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep)/((1-prob_of_beep)))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)/(1-prob_of_beep)))
+            mult_value = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)))
+            # mult_value = (1-prob_of_beep) + (1- ((prob_beep - prob_of_beep)/((1-prob_of_beep)))) - (1-prob_of_beep) * (1- ((prob_beep - prob_of_beep)/(1-prob_of_beep)))
             probability_leak[pair] *= mult_value
         sum += probability_leak[pair]
     
@@ -479,11 +488,53 @@ def bot_2_6_poss_leaks_in_range():
     
     return cnt
 
-def bot_8_run():
+def bot_9_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    
+    # for i in range(GRID_SIZE):
+    #     for j in range(GRID_SIZE):
+    #         if (i,j) not in probability_leak:
+    #             print("\t", end="")
+    #         else:
+    #             print(f"{probability_leak[(i,j)]:.5f} ",end="")
+    #     print("")
     next_location = bot_bfs(0)
 
-    best_cell = bot_3_best_cell()
+    best_cell = probability_best_cell()
+    next_location = bot_bfs(1)
+    
+    robot_location = next_location
+    
+    if robot_location in leak_location:
+        leak_location = tuple(item for item in leak_location if item != robot_location)
+        if leak_location == ():
+            return
+    
+    # Not at leak location, so must update probabilities
+    update_probabilities()
+    bot_bfs(0)
+    #listen for chirp only 30% of the time
+    if random.random() <= 0.3:
+        if listen_for_beep_multiple_leaks():
+            # print("BEEP!")
+            update_probabilities_for_beep_bot_8_9()
+        else:
+            # print("NO BEEP!")
+            update_probabilities_for_no_beep_bot_8_9()
+
+def bot_8_run():
+    global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
+    
+    # for i in range(GRID_SIZE):
+    #     for j in range(GRID_SIZE):
+    #         if (i,j) not in probability_leak:
+    #             print("\t", end="")
+    #         else:
+    #             print(f"{probability_leak[(i,j)]:.5f} ",end="")
+    #     print("")
+    next_location = bot_bfs(0)
+
+    best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
@@ -498,15 +549,17 @@ def bot_8_run():
     bot_bfs(0)
     #listen for chirp
     if listen_for_beep_multiple_leaks():
-        update_probabilities_for_beep_bot_8()
+        # print("BEEP!")
+        update_probabilities_for_beep_bot_8_9()
     else:
-        update_probabilities_for_no_beep_bot_8()
+        # print("NO BEEP!")
+        update_probabilities_for_no_beep_bot_8_9()
 
 def bot_7_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
 
-    best_cell = bot_3_best_cell()
+    best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
@@ -570,7 +623,7 @@ def bot_4_run():
     global robot_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
     
-    best_cell = bot_3_best_cell()
+    best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
         
@@ -595,7 +648,7 @@ def bot_3_run():
     global robot_location,leak_location,possible_leaks,NUMBER_OF_ACTIONS,best_cell
     next_location = bot_bfs(0)
 
-    best_cell = bot_3_best_cell()
+    best_cell = probability_best_cell()
     next_location = bot_bfs(1)
     
     robot_location = next_location
@@ -670,7 +723,7 @@ def which_color(i,j):
 
 # if the sim is being displayed, initialize display layout
 if DISPLAY_TEST:
-    grid_layout = [[sg.Text(probability_leak[(i,j)] if (i,j) in probability_leak else '', size=(2,1), background_color=which_color(i,j), pad=(0,0), key=(i,j)) 
+    grid_layout = [[sg.Text('', size=(2,1), background_color=which_color(i,j), pad=(0,0), key=(i,j)) 
             for j in range(GRID_SIZE)] for i in range(GRID_SIZE)]
 
     start_button_layout = [[
@@ -718,13 +771,15 @@ try:
             bot_7_run()
         elif BOT_TYPE == 8:
             bot_8_run()
+        elif BOT_TYPE == 9:
+            bot_9_run()
             
         # Changes display
         if DISPLAY_TEST:
             time.sleep(refresh_rate)
             for i in range(GRID_SIZE):
                 for j in range(GRID_SIZE):
-                    window[(i,j)].update(sg.Text(probability_leak[(i,j)] if (i,j) in probability_leak else '',background_color=which_color(i,j)))
+                    window[(i,j)].update(background_color=which_color(i,j))
 
             window.refresh()
 finally:
