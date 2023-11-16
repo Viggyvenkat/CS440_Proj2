@@ -44,5 +44,13 @@ However, 3 and 4 were tested on a 50x50 grid and 7,8,9 were tested on a 20x20 gr
 3) for 1 vs 2: bot 2 on average was 100 actions less than bot 1.
   for bot 3 vs 4: For both 3 vs 4, there is approximately a difference of 35 actions at an alpha value of 0.01. Whereas, when the alpha value scales to 0.1, bot 4 performs worse with an approximately 100 actions difference between bot 3 and 4. 
   for bot 5 vs 6: for both 5 vs 6, as the k value increases the number of actions between 6 and 5 increases, whereas 6 is always less than 5. When k = 1, there is about a 100 actions difference for a grid of 50 x 50, when the k values increases to 10 there is approximately a 1100 average difference and when the k value increases to 21, bot 2 performs worse than bot 1 with about a difference in 5000 actions. This can attributed to randomness. 
-  for bot 7 vs 8 vs 9: 
-4) Every iteration you should update the proability knowledge base but you should also have a detection square, thus inducing deterministic decisions alongside probabilisitc decisions. When deterministic decisions are closer to the leak, then chose 5,6 bots, whereas use probabilstic decisions to decide which cell is closer to the leak. so you bye pass some of the determinsistic inefficiencies. 
+  for bot 7 vs 8 vs 9:
+For the lower alpha values, 8 and 9 always has lower action values:
+alpha,Bot 3,Bot 4,Bot 7,Bot 8,Bot 9
+0.01,410.38,385.87,489.21,357.88,474.06
+0.025,721.48,701.81,855.66,661.28,430.79
+0.05,1007.06,961.00,1171.17,930.13,388.28
+0.1,1324.96,1289.83,1412.08,1124.13,399.91'
+
+However, we noticed as the higher the alpha values go, the better bot 7 performs on the 20 x 20 grid. We were not able to test 50 x 50 due to computational limits. 
+5) Every iteration you should update the proability knowledge base but you should also have a detection square, thus inducing deterministic decisions alongside probabilisitc decisions. When deterministic decisions are closer to the leak, then chose 5,6 bots, whereas use probabilstic decisions to decide which cell is closer to the leak. so you bye pass some of the determinsistic inefficiencies. 
